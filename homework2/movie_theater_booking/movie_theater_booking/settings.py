@@ -37,6 +37,9 @@ CSRF_TRUSTED_ORIGINS = ['https://*.devedu.io']
 if RENDER_HOST:
     CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_HOST}')
 
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/'
+
 
 # Application definition
 
