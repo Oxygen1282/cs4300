@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 class Movie(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
-    release_data = models.DateField()
+    release_date = models.DateField()
     duration = models.PositiveIntegerField(help_text="length in minutes")
 
     def __str__(self):
