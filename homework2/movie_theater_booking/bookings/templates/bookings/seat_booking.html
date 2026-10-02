@@ -1,23 +1,154 @@
 {% extends 'bookings/base.html' %}
+{% block title %}Book Seats{% endblock %}
 
-{% block title %}Book a Seat{% endblock %}
+{% block extra_head %}
+<style>
+    .screen {
+        background: linear-gradient(#cfd8dc, #eceff1);
+        color: #555;
+        text-align: center;
+        font-weight: bold;
+        letter-spacing: 8px;
+        padding: 10px; max-width: 500px;
+        margin: 0 auto 30px;
+        border-radius: 6px 6px 40px 40px / 6px 6px 20px 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,.15);
+    }
+    .seat-map {
+        width: fit-content;     /* shrink the map to exactly its contents */
+        margin: 0 auto;         /* then center that shrik-wrapped block */
+    }
+    .seat-row { 
+        display: flex;
+        align-items: center;
+        justify-content: center;    /* center seats within the row */
+        margin-bottom: 6px;
+    }
+    .row-label {
+        width: 24px;
+        font-weight: bold;
+        color: #666;
+        text-align: center;
+    }
+    .seat {
+        width: 44px;
+        height: 44px;
+        margin: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .72rem;
+        border: 1px solid #bbb;
+        user-select: none;
+    }
+    .seat.available { 
+        background: #fff;
+        cursor: pointer;
+    }
+    .seat.available:hover { background: #e3f2fd }
+    .seat.selected {
+        background: #4fc3f7;
+        color: #fff;
+        border-color: #039be5;
+    }
+    .seat.booked {
+        background: #9e9e9e;
+        color: #eee;
+        cursor: not-allowed;
+    }
+    .legend {
+        display: flex;
+        gap: 20px;
+    }
+    .legend .swatch {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        vertical-align: middle;
+        margin-right: 4px;
+        border: 1px solid #bbb;
+    }
+    .legend .swatch.available { background: #fff }
+    .legend .swatch.selected { background: #4fc3f7 }
+    .legend .swatch.booked { background:#9e9e9e; }
+</style>
+{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Book a Seat - {{ movie.title }}</h2>
+<h2 class="mb-4">Book Seats - {{ movie.title }}</h2>
 
-<form method="post">
-    {% csrf_token %}
-    <div class="mb-3">
-        <label for="seat" class="form-label">Choose an available seat:</label>
-        <select name="seat" id="seat" class="form-select" required>
-            {% for seat in available_seats %}
-            <option value="{{ seat.id }}">{{ seat.seat_number }}</option>"
-            {% empty %}
-            <option disabled>No Seats Available</option>
-            {% endfor %}
-        </select>
+<div class="screen">SCREEN</div>
+
+<div class="seat-map">
+    {% for row_letter, seats in seat_rows %}
+    <div class="seat-row">
+        <span class="row-label">{{ row_letter }}</span>
+        {% for seat in seats %}
+            {% if seat.is_booked %}
+            <div class="seat booked" title="{{ seat.seat_number }} (taken)">{{ seat.seat_number }}</div>
+            {% else %}
+            <div class="seat available" data-seat-id="{{ seat.id }}"
+                data-seat-number="{{ seat.seat_number }}">{{ seat.seat_number }}</div>
+            {% endif %}
+        {% endfor %}
+        <span class="row-label"></span>     <!-- Balances the left label -->
     </div>
-    <button type="submit" class="btn btn-success">Confirm Booking</button>
-    <a href="{% url 'movie_list' %}" class="btn btn-secondary">Cancel</a>
+    {% endfor %}
+</div>
+
+<div class="legend mt-3">
+    <span><span class="swatch available"></span> Available</span>
+    <span><span class="swatch selected"></span> Selected</span>
+    <span><span class="swatch booked"></span> Taken</span>
+</div>
+
+<form method="post" id="booking-form" class="mt-4">
+    {% csrf_token %}
+    <div id="hidden-inputs"></div>
+    <p id="selection-summary" class="text-muted">No seats selected</p>
+    <button type="submit" class="btn btn-success" id="confirm-btn" disabled>Confirm Booking</button>
+    <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hiddenContainer = document.getElementById('hidden-inputs');
+        const summary = document.getElementById('selection-summary');
+        const confirmBtn = document.getElementById('confirm-btn');
+
+        function refresh() {
+            hiddenContainer.innerHTML = '';         // rebuild from scratch each time
+            const chosen = document.querySelectorAll('.seat.selected');
+            const numbers = [];
+            chosen.forEach(function (el) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'seats';       // matches getlist('seats')
+                input.value = el.dataset.seatId;
+                hiddenContainer.appendChild(input);
+                numbers.push(el.dataset.seatNumber);
+            });
+            summary.textContent = numbers.length ? 'Selected: ' + numbers.join(', ') : 'No seats selected';
+            confirmBtn.disabled = numbers.length === 0;
+        }
+
+        document.querySelectorAll('.seat.available').forEach(function (seat) {
+            seat.addEventListener('click', function () {
+                seat.classList.toggle('selected');      // click toggles highlight
+                refresh();
+            });
+        });
+
+        document.getElementById('cancel-btn').addEventListener('click', function () {
+            document.querySelectorAll('.seat.selected').forEach(function (el) {
+                el.classList.remove('selected');        // discard the selection
+            });
+            refresh();
+        });
+    });
+</script>
 {% endblock %}
