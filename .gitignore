@@ -10,4 +10,18 @@ task7_output.png
 # Django
 db.sqlite3
 *.log
+
+# Django static collection
+staticfiles/
+
+# Coverage
+.Coverage
+htmlcov/
    
+
+# Virtual environments
+venv/
+*venv/
+*/venv/
+hw1_venv/
+hw2_venv/
