@@ -6,6 +6,6 @@ admin.site.register(Movie)
 admin.site.register(Seat)
 admin.site.register(Booking)
 
-# Admin Login:
+# Dev env Admin Login:
 # username: david
 # password: DjangoHw2Password
