@@ -86,7 +86,7 @@
     <div class="seat-row">
         <span class="row-label">{{ row_letter }}</span>
         {% for seat in seats %}
-            {% if seat.is_booked %}
+            {% if seat.id in taken_seat_ids %}
             <div class="seat booked" title="{{ seat.seat_number }} (taken)">{{ seat.seat_number }}</div>
             {% else %}
             <div class="seat available" data-seat-id="{{ seat.id }}"

@@ -29,5 +29,8 @@ def step_create_seat(context, seat_number):
 
 @then('the seat "{seat_number}" should not be booked')
 def step_seat_not_booked(context, seat_number):
+    from bookings.models import Booking 
     seat = Seat.objects.get(seat_number=seat_number)
-    assert seat.is_booked is False, f"Seat {seat_number} is unexpectedly booked"
+    # "Not booked" means Booking references this seat
+    assert not Booking.objects.filter(seat=seat).exists(), \
+    f"Seat {seat_number} unexpectedly has a booking"

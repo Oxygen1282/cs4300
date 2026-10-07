@@ -13,7 +13,6 @@ class Movie(models.Model):
 
 class Seat(models.Model):
     seat_number = models.CharField(max_length=10)   # e.g. "A1", "B12"
-    is_booked = models.BooleanField(default=False)
 
     def __str__(self):
         return self.seat_number

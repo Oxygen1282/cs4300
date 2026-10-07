@@ -33,19 +33,17 @@ def seat_booking(request, movie_id):
         booked, skipped = [], []
 
         for seat_id in seat_ids:
-            # Re-check availability on the server - never trust the client.
-            try:
-                seat = Seat.objects.filter(id=seat_id, is_booked=False).first()
-            except (ValueError, TypeError):
-                skipped.append(seat_id)
+            seat = Seat.objects.filter(id=seat_id).first()
+            if seat is None:
+                skipped.append(str(seat_id))
                 continue
-            if seat is None:        # doesn't exist, or already taken
-                skipped.append(seat_id)
+            # Taken only if a Booking already exists for THIS seat AND THIS movie
+            already = Booking.objects.filter(movie=movie, seat=seat).exists()
+            if already:
+                skipped.append(seat.seat_number)
                 continue
             
             Booking.objects.create(movie=movie, seat=seat, user=request.user)
-            seat.is_booked = True 
-            seat.save()
             booked.append(seat.seat_number)
 
         if booked:
@@ -56,14 +54,19 @@ def seat_booking(request, movie_id):
 
     # GET: fetch ALL seats and group them by row letter for the grid.
     seats = Seat.objects.all().order_by('seat_number')     # A1 ... A8, B1 ... B8, etc.
+    taken_seat_ids = set(
+        Booking.objects.filter(movie=movie).values_list('seat_id', flat=True)
+    )
+
     rows = {}
     for seat in seats:
         rows.setdefault(seat.seat_number[0], []).append(seat)
-    seat_rows = sorted(rows.items())        # [('A', [1-8]), ('B', [1-8]) ...]
+    seat_rows = sorted(rows.items())
 
     return render(request, 'bookings/seat_booking.html', {
         'movie': movie,
         'seat_rows': seat_rows,
+        'taken_seat_ids': taken_seat_ids
     })
 
 @login_required

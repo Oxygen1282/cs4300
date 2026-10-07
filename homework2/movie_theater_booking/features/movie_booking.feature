@@ -7,7 +7,3 @@ Feature: Movie booking
         Given a movie "Inception" exists
         When I visit the movie list page
         Then I should see "Inception" in the response
-    
-    Scenario: A seat starts out available
-    Given a seat "A1" exists 
-    Then the seat "A1" should not be booked

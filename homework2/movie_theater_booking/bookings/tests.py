@@ -29,11 +29,6 @@ class MovieModelTest(TestCase):
         self.assertEqual(self.movie.title, "Inception")
 
 class SeatModelTest(TestCase):
-    def test_seat_defaults_to_unbooked(self):
-        seat = Seat.objects.create(seat_number="A1")
-        # is_booked has default=False, so a new seat should be available
-        self.assertFalse(seat.is_booked)
-
     def test_seat_str(self):
         seat = Seat.objects.create(seat_number="A1")
         self.assertEqual(str(seat), "A1")
@@ -136,23 +131,30 @@ class SeatBookingViewTest(TestCase):
         # successful booking redirects to history
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Booking.objects.count(), 2)
-        # seats should now be mared booked
-        self.seat_a1.refresh_from_db()
-        self.seat_a2.refresh_from_db()
-        self.assertTrue(self.seat_a1.is_booked)
-        self.assertTrue(self.seat_a2.is_booked)
+        # Availability lives in Booking not the seat
+        self.assertTrue(Booking.objects.filter(movie=self.movie, seat=self.seat_a1).exists())
+        self.assertTrue(Booking.objects.filter(movie=self.movie, seat=self.seat_a2).exists())
 
     def test_booking_skips_already_booked_seat(self):
         # pre-book A1, then try to book both A1 and A2
-        self.seat_a1.is_booked = True
-        self.seat_a1.save()
+        Booking.objects.create(movie=self.movie, seat=self.seat_a1, user=self.user)
         response = self.client.post(
             f"/book/{self.movie.id}/",
             {"seats": [self.seat_a1.id, self.seat_a2.id]},
         )
         self.assertEqual(response.status_code, 302)
         # only A2 should have been booked; A1 was skipped
-        self.assertEqual(Booking.objects.count(), 1)
+        self.assertEqual(Booking.objects.count(), 2)
+        self.assertEqual(Booking.objects.filter(seat=self.seat_a2).count(), 1)
+
+    def test_booking_for_other_movie(self):
+        # Book A1 for movie 1; A1 should still be free for a DIFFERENT movie
+        other_movie = Movie.objects.create(
+            title="Other", description="x", release_date=date(2020, 1, 1), duration=100,
+        )
+        Booking.objects.create(movie=self.movie, seat=self.seat_a1, user=self.user)
+        response = self.client.get(f"/book/{other_movie.id}/")
+        self.assertNotIn(self.seat_a1.id, response.context['taken_seat_ids'])
 
 class TemplateViewTest(TestCase):
     def setUp(self):
