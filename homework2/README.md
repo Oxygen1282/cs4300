@@ -86,47 +86,39 @@ The browsable DRF interface is available at these URLs in a web browser.
 
 ## Local Setup
 
-1. **Clone the repository and enter the project directory:**
-   ```bash
+1. **Activate the virtual environment and enter the project directory:**
+```bash
    git clone https://github.com/Oxygen1282/cs4300.git
-   cd homework2/movie_theater_booking
-   ```
+   cd cs4300/homework2/movie_theater_booking
+   python -m venv venv
+   source venv/bin/activate
+```
 
-2. **Create and activate a virtual environment:**
-   ```bash
-   python3 -m venv myenv --system-site-packages
-   source myenv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
+2. **Install dependencies:**
+```bash
    pip install -r requirements.txt
-   ```
+```
 
-4. **Create a `.env` file** in the project root (next to `manage.py`):
-   ```
-   DJANGO_SECRET_KEY=your-generated-secret-key
-   DJANGO_DEBUG=True
-   DJANGO_ADMIN_PASSWORD=choose-a-password
-   ```
-   Generate a secret key with:
-   ```bash
-   python manage.py shell -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-   ```
+3. **Create the `.env` file** (fill in your own secret key and admin password):
+    (SKIP THIS IF YOU HAVE ALREADY CREATED .env)
+```bash
+   touch .env
+   echo "DJANGO_SECRET_KEY=devloper_secret_key" >> .env
+   echo "DJANGO_DEBUG=True" >> .env
+   echo "DJANGO_ADMIN_PASSWORD=changeme" >> .env
+```
 
-5. **Run migrations and seed the database:**
-   ```bash
+4. **Apply migrations and seed the database:**
+```bash
    python manage.py migrate
    python manage.py seed_data
-   ```
-   `seed_data` creates an `admin` superuser (using `DJANGO_ADMIN_PASSWORD`), the
-   32 seats, and a set of movies. It is idempotent — safe to run repeatedly.
+```
 
-6. **Run the development server:**
-   ```bash
+5. **Run the server:**
+```bash
    python manage.py runserver 0.0.0.0:3000
-   ```
-   Visit the site at the local URL, and log in at `/admin` with username `admin`.
+```
+   Click the DevEdu app link, then log in at `/admin` with the admin account.
 
 ---
 
