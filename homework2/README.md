@@ -88,7 +88,7 @@ The browsable DRF interface is available at these URLs in a web browser.
 
 1. **Clone the repository and enter the project directory:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/Oxygen1282/cs4300.git
    cd homework2/movie_theater_booking
    ```
 
