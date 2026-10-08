@@ -16,7 +16,7 @@
     }
     .seat-map {
         width: fit-content;     /* shrink the map to exactly its contents */
-        margin: 0 auto;         /* then center that shrik-wrapped block */
+        margin: 0 auto;         /* then center that shrink-wrapped block */
     }
     .seat-row { 
         display: flex;
@@ -81,11 +81,13 @@
 
 <div class="screen">SCREEN</div>
 
+{# seat_rows is a list of (row_letter, [seats]) tuples built in views.seat_booking #}
 <div class="seat-map">
     {% for row_letter, seats in seat_rows %}
     <div class="seat-row">
         <span class="row-label">{{ row_letter }}</span>
         {% for seat in seats %}
+            {# taken seats get no data-seat-id, so the JS can't select them #}
             {% if seat.id in taken_seat_ids %}
             <div class="seat booked" title="{{ seat.seat_number }} (taken)">{{ seat.seat_number }}</div>
             {% else %}
@@ -106,6 +108,7 @@
 
 <form method="post" id="booking-form" class="mt-4">
     {% csrf_token %}
+    <!-- JS fills this with one hidden "seats" input per selected seat -->
     <div id="hidden-inputs"></div>
     <p id="selection-summary" class="text-muted">No seats selected</p>
     <button type="submit" class="btn btn-success" id="confirm-btn" disabled>Confirm Booking</button>
@@ -120,6 +123,8 @@
         const summary = document.getElementById('selection-summary');
         const confirmBtn = document.getElementById('confirm-btn');
 
+        // Sync the hidden form inputs, summary text, and confirm button with
+        // whichever seats currently have the "selected" class
         function refresh() {
             hiddenContainer.innerHTML = '';         // rebuild from scratch each time
             const chosen = document.querySelectorAll('.seat.selected');
@@ -143,6 +148,7 @@
             });
         });
 
+        // Cancel just clears the selection on the page; nothing is sent to the server
         document.getElementById('cancel-btn').addEventListener('click', function () {
             document.querySelectorAll('.seat.selected').forEach(function (el) {
                 el.classList.remove('selected');        // discard the selection

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Movie Theater{% endblock %}</title>
-    <!-- BootstrapCSS via CDN -->
+    <!-- Bootstrap CSS via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     {% block extra_head %}{% endblock %}    <!-- page-specific CSS goes here -->
 </head>
@@ -14,12 +14,14 @@
             <a class="navbar-brand" href="{% url 'movie_list' %}">🎬 Movie Theater</a>
             <div class="navbar-nav">
                 <a class="nav-link" href="{% url 'movie_list' %}">Movies</a>
+                <!-- requires login; anonymous users get redirected to the admin login -->
                 <a class="nav-link" href="{% url 'booking_history' %}">My Bookings</a>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
+        {# Flash messages from views; message.tags ("success", "warning", ...) map onto Bootstrap alert classes #}
         {% if messages %}
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">{{ message }}</div>

@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from datetime import date 
 from bookings.models import Movie, Seat 
 
+# Run with: python manage.py seed_data  (build.sh runs it on each Render deploy)
+# Safe to run repeatedly: every step uses get_or_create, so nothing is duplicated.
 class Command(BaseCommand):
     help = "Seed the database with an admin user, seats, and movies (idempotent)."
 
@@ -24,6 +26,8 @@ class Command(BaseCommand):
             username=username,
             defaults={'is_staff': True, 'is_superuser': True},
         )
+        # Password is only set on first creation; changing DJANGO_ADMIN_PASSWORD
+        # later won't update an existing admin
         if created:
             user.set_password(password)     # hash the password properly
             user.save()
@@ -31,6 +35,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"Superuser '{username}' already exists - skipping.")
     
+    # 4 rows x 8 seats = 32 seats, A1 through D8
     def create_seats(self):
         rows = ['A', 'B', 'C', 'D']
         created_count = 0

@@ -6,9 +6,10 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from datetime import date
-from .models import Movie, Seat, Booking 
+from .models import Movie, Seat, Booking
 
-# Create your tests here.
+# Run with: python manage.py test bookings
+# Each test gets a fresh, empty test database, so setUp builds what it needs.
 
 # -------------- UNIT TESTS: Models in isolation -----------------
 class MovieModelTest(TestCase):
@@ -65,6 +66,7 @@ class MovieAPITest(APITestCase):
         )
 
     def test_list_movies(self):
+        # Only the one movie from setUp should come back (no pagination configured)
         response = self.client.get("/api/movies/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -78,7 +80,7 @@ class MovieAPITest(APITestCase):
         }
         response = self.client.post("/api/movies/", payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Movie.objects.count(), 2)
+        self.assertEqual(Movie.objects.count(), 2)     # the setUp movie + the new one
 
 class BookingAPITest(APITestCase):
     def setUp(self):
@@ -92,7 +94,9 @@ class BookingAPITest(APITestCase):
         self.seat = Seat.objects.create(seat_number="C5")
 
     def test_create_booking_via_api(self):
-        self.client.force_authenticate(user=self.user)      # log in for the request
+        # Log in for the request. The API has no permission classes set, so this
+        # isn't strictly required, but it mirrors a real user booking.
+        self.client.force_authenticate(user=self.user)
         payload = {
             "movie": self.movie.id,
             "seat": self.seat.id,
@@ -113,7 +117,7 @@ class SeatBookingViewTest(TestCase):
         )
         self.seat_a1 = Seat.objects.create(seat_number="A1")
         self.seat_a2 = Seat.objects.create(seat_number="A2")
-        # log the test client in, since seat_booking needs request.user
+        # log the test client in, since seat_booking is @login_required and uses request.user
         self.client.login(username="dave", password="pw12345")
 
     def test_seat_booking_page_loads(self):
@@ -143,12 +147,14 @@ class SeatBookingViewTest(TestCase):
             {"seats": [self.seat_a1.id, self.seat_a2.id]},
         )
         self.assertEqual(response.status_code, 302)
-        # only A2 should have been booked; A1 was skipped
+        # only A2 should have been booked; A1 was skipped.
+        # Count is 2 = the pre-existing A1 booking + the new A2 booking
         self.assertEqual(Booking.objects.count(), 2)
         self.assertEqual(Booking.objects.filter(seat=self.seat_a2).count(), 1)
 
     def test_booking_for_other_movie(self):
-        # Book A1 for movie 1; A1 should still be free for a DIFFERENT movie
+        # Book A1 for self.movie; A1 should still be free for a DIFFERENT movie
+        # (regression test for the "seat taken for unrelated movies" bug)
         other_movie = Movie.objects.create(
             title="Other", description="x", release_date=date(2020, 1, 1), duration=100,
         )
@@ -156,6 +162,7 @@ class SeatBookingViewTest(TestCase):
         response = self.client.get(f"/book/{other_movie.id}/")
         self.assertNotIn(self.seat_a1.id, response.context['taken_seat_ids'])
 
+# Smoke tests: the HTML pages render with a 200
 class TemplateViewTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="dave", password="pw12345")

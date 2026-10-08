@@ -13,6 +13,8 @@ from .views import (
     
 )
 
+# DefaultRouter generates the list/detail routes for each viewset,
+# e.g. /api/movies/ and /api/movies/<id>/, plus a browsable API root at /api/
 router = DefaultRouter()
 router.register(r'movies', MovieViewSet)
 router.register(r'seats', SeatViewSet)

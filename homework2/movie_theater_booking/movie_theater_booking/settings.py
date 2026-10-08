@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv()   # loads env vars from a local .env file (dev); on Render they come from the dashboard
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,12 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Required: raises KeyError at startup if DJANGO_SECRET_KEY isn't set
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# Off unless DJANGO_DEBUG is exactly the string 'True'
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['.devedu.io', 'localhost', '127.0.0.1']
+# Render sets RENDER_EXTERNAL_HOSTNAME automatically on deploy
 RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_HOST:
     ALLOWED_HOSTS.append(RENDER_HOST)
@@ -37,6 +40,7 @@ CSRF_TRUSTED_ORIGINS = ['https://*.devedu.io']
 if RENDER_HOST:
     CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_HOST}')
 
+# No custom login page: @login_required views redirect to the admin login instead
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
 
@@ -57,7 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',   # serves static files in production; must sit right after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -132,7 +136,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')    # where collectstatic gathers files for WhiteNoise
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",

@@ -1,6 +1,11 @@
 from behave import given, when, then 
 from datetime import date 
-from bookings.models import Movie, Seat 
+from bookings.models import Movie, Seat
+
+# Step definitions for features/movie_booking.feature.
+# Run with: python manage.py behave  (behave-django uses a fresh test database)
+# The "{title}"-style placeholders in each decorator are parsed out of the
+# Gherkin step text and passed in as arguments.
 
 @given('a movie "{title}" exists')
 def step_create_movie(context, title):
@@ -19,7 +24,7 @@ def step_visit_movie_list(context):
 @then('I should see "{text}" in the response')
 def step_check_response(context, text):
     assert text in context.response.content.decode(), \
-    f'"{text}" not found in the page'
+        f'"{text}" not found in the page'
 
 
 @given('a seat "{seat_number}" exists')
@@ -31,6 +36,6 @@ def step_create_seat(context, seat_number):
 def step_seat_not_booked(context, seat_number):
     from bookings.models import Booking 
     seat = Seat.objects.get(seat_number=seat_number)
-    # "Not booked" means Booking references this seat
+    # "Not booked" means NO Booking references this seat (for any movie)
     assert not Booking.objects.filter(seat=seat).exists(), \
-    f"Seat {seat_number} unexpectedly has a booking"
+        f"Seat {seat_number} unexpectedly has a booking"
