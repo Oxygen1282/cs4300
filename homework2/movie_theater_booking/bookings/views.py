@@ -3,6 +3,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action 
+from rest_framework.response import Response 
+
 from .models import Movie, Seat, Booking 
 from .serializers import MovieSerializer, SeatSerializer, BookingSerializer
 
@@ -15,11 +19,37 @@ class MovieViewSet(viewsets.ModelViewSet):
 
 class SeatViewSet(viewsets.ModelViewSet):
     queryset = Seat.objects.all()
-    serializer_class = SeatSerializer 
+    serializer_class = SeatSerializer
+
+    @action(detail=False, methods=['get'])
+    def availability(self, request):
+        movie_id = request.query_params.get('movie')
+        if not movie_id:
+            return Response(
+                {"error": "Provide a movie id, e.g. /api/seats/availability/?movie=1"},
+                status=400,
+            ) 
+        
+        taken_seat_ids = set(
+            Booking.objects.filter(movie_id=movie_id).values_list('seat_id', flat=True)
+        )
+        data = [
+            {
+                "id": seat.id,
+                "seat_number": seat.seat_number,
+                "is_available": seat.id not in taken_seat_ids
+            }
+            for seat in Seat.objects.all().order_by('seat_number')
+        ]
+        return Response(data)
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)     # force the logged-in user
 
 
 # ---------- Template views (website) ----------

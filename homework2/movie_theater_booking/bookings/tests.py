@@ -94,17 +94,67 @@ class BookingAPITest(APITestCase):
         self.seat = Seat.objects.create(seat_number="C5")
 
     def test_create_booking_via_api(self):
-        # Log in for the request. The API has no permission classes set, so this
-        # isn't strictly required, but it mirrors a real user booking.
+        # Log in for the request. It mirrors a real user booking.
         self.client.force_authenticate(user=self.user)
         payload = {
             "movie": self.movie.id,
-            "seat": self.seat.id,
-            "user": self.user.id,
+            "seat": self.seat.id,       # user is sever-set
         }
         response = self.client.post("/api/bookings/", payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Booking.objects.count(), 1)
+
+    def test_api_rejects_duplicate_booking(self):
+        # Booking the same seat for the same movie twice should fail the 2nd time
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            "movie": self.movie.id,
+            "seat": self.seat.id,
+        }
+        first = self.client.post("/api/bookings/", payload)
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        second = self.client.post("/api/bookings/", payload)
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Booking.objects.count(), 1)    # no duplicate created
+    
+    def test_api_requires_authentication(self):
+        # Anonymous POST should be rejected now that IsAuthenticated is set
+        payload = {
+            "movie": self.movie.id,
+            "seat": self.seat.id,
+        }
+        response = self.client.post("/api/bookings/", payload)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertEqual(Booking.objects.count(), 0)
+
+    def test_api_forces_logged_in_user(self):
+        # Even if a client sends a different user id, the booking is owned by
+        # the authenticated user (user is read-only / server-set)
+        other = User.objects.create_user(username="someone_else", password="pw")
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            "movie": self.movie.id,
+            "seat": self.seat.id,
+            "user": other.id,
+        }
+        response = self.client.post("/api/bookings/", payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        booking = Booking.objects.get()
+        self.assertEqual(booking.user, self.user)   # NOT 'other'
+
+    def test_seat_availability_endpoint(self):
+        self.client.force_authenticate(user=self.user)
+        # book the setUp seat for the movie
+        Booking.objects.create(movie=self.movie, seat=self.seat, user=self.user)
+        response = self.client.get(f"/api/seats/availability/?movie={self.movie.id}")
+        self.assertEqual(response.status_code, 200)
+        # find the booked seat in the response and confirm it reads as unavailable
+        booked = next(s for s in response.data if s["id"] == self.seat.id)
+        self.assertFalse(booked["is_available"])
+
+    def test_seat_availability_requires_movie(self):
+        response = self.client.get("/api/seats/availability/")
+        self.assertEqual(response.status_code, 400)
 
 class SeatBookingViewTest(TestCase):
     def setUp(self):
