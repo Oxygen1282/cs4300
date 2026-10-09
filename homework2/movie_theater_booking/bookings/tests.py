@@ -58,6 +58,7 @@ class BookingModelTest(TestCase):
 # ---------- INTEGRATION TESTS: API endpoints end-to-end ----------
 class MovieAPITest(APITestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username="dave", password="pw12345")
         self.movie = Movie.objects.create(
             title="Arrival",
             description="Linguist meets aliens.",
@@ -72,6 +73,7 @@ class MovieAPITest(APITestCase):
         self.assertEqual(len(response.data), 1)
 
     def test_create_movie(self):
+        self.client.force_authenticate(user=self.user)      # writes now need auth
         payload = {
             "title": "Interstellar",
             "description": "Space and time.",
@@ -81,6 +83,16 @@ class MovieAPITest(APITestCase):
         response = self.client.post("/api/movies/", payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Movie.objects.count(), 2)     # the setUp movie + the new one
+
+    def test_anonymous_cannot_create_movie(self):
+        payload = {
+            "title": "X",
+            "description": "x",
+            "release_data": "2020-01-01",
+            "duration": 100
+        }
+        response = self.client.post("/api/movies/", payload)    # no auth
+        self.assertIn(response.status_code, [401, 403])
 
 class BookingAPITest(APITestCase):
     def setUp(self):
@@ -155,6 +167,22 @@ class BookingAPITest(APITestCase):
     def test_seat_availability_requires_movie(self):
         response = self.client.get("/api/seats/availability/")
         self.assertEqual(response.status_code, 400)
+
+    def test_user_sees_only_own_bookings(self):
+        other = User.objects.create_user(username="other", password="pw")
+        Booking.objects.create(movie=self.movie, seat=self.seat, user=other)
+        self.client.force_authenticate(user=self.user)      # self.user has none
+        response = self.client.get("/api/bookings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)     # can't see other's bookings
+
+    def test_user_cannot_delete_others_booking(self):
+        other = User.objects.create_user(username="other", password="pw")
+        booking = Booking.objects.create(movie=self.movie, seat=self.seat, user=other)
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(f"/api/booking/{booking.id}/")
+        self.assertEqual(response.status_code, 404)     # not in their queryset
+        self.assertTrue(Booking.objects.filter(id=booking.id).exists())     # still there
 
 class SeatBookingViewTest(TestCase):
     def setUp(self):

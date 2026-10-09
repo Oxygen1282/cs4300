@@ -21,11 +21,16 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = ["booking_date", 'user']    # auto-set by the model, clients can't send it, user is server-set
 
     def validate(self, data):
-        # Reject a seat already booked for this movie (both API and web paths)
-        movie = data.get('movie')
-        seat = data.get('seat')
-        if Booking.objects.filter(movie=movie, seat=seat).exists():
+        # On a partial update the fields may be absent; fall back to the instance's values
+        movie = data.get('movie') or getattr(self.instance, 'movie', None)
+        seat = data.get('seat') or getattr(self.instance, 'seat', None)
+
+        duplicates = Booking.objects.filter(movie=movie, seat=seat)
+        if self.instance is not None:
+            duplicates = duplicates.exclude(pk=self.instance.pk)    # ignore myself
+
+        if duplicates.exists():
             raise serializers.ValidationError(
-                "That seat is already bkkied for this movie."
+                "That seat is already booked for this movie."
             )
-        return data 
+        return data

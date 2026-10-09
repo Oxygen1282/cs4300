@@ -39,3 +39,25 @@ def step_seat_not_booked(context, seat_number):
     # "Not booked" means NO Booking references this seat (for any movie)
     assert not Booking.objects.filter(seat=seat).exists(), \
         f"Seat {seat_number} unexpectedly has a booking"
+
+@given('I am logged in')
+def step_login(context):
+    User.objects.create_user(username="bdd_user", password="pw12345")
+    context.test.client.login(username="bdd_user", password="pw12345")
+
+
+@when('I book seat "{seat_number}" for "{title}"')
+def step_book_seat(context, seat_number, title):
+    movie = Movie.objects.get(title=title)
+    seat = Seat.objects.get(seat_number=seat_number)
+    context.response = context.test.client.post(
+        f"/book/{movie.id}/", {"seats": [seat.id]}
+    )
+
+
+@then('seat "{seat_number}" is booked for "{title}"')
+def step_seat_booked_for_movie(context, seat_number, title):
+    movie = Movie.objects.get(title=title)
+    seat = Seat.objects.get(seat_number=seat_number)
+    assert Booking.objects.filter(movie=movie, seat=seat).exists(), \
+        f"Expected a booking for {seat_number} in {title}"

@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action 
 from rest_framework.response import Response 
 
@@ -16,10 +16,12 @@ from .serializers import MovieSerializer, SeatSerializer, BookingSerializer
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 class SeatViewSet(viewsets.ModelViewSet):
     queryset = Seat.objects.all()
     serializer_class = SeatSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     @action(detail=False, methods=['get'])
     def availability(self, request):
@@ -47,6 +49,10 @@ class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Each user sees and can modify only their own bookings
+        return Booking.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)     # force the logged-in user
