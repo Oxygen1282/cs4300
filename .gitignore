@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 task7_output.png
 *.pyc 
+.coverage
 
 # Django
 db.sqlite3
