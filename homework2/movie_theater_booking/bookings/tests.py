@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 
 from datetime import date
@@ -179,6 +179,15 @@ class BookingAPITest(APITestCase):
     def test_user_cannot_delete_others_booking(self):
         other = User.objects.create_user(username="other", password="pw")
         booking = Booking.objects.create(movie=self.movie, seat=self.seat, user=other)
+
+        # sanity check: the OWNER can reach this exact URL (proves the rout exists)
+        owner_client = APIClient()
+        owner_client.force_authenticate(user=other)
+        self.assertEqual(
+            owner_client.get(f"/api/bookings/{booking.id}/").status_code, 200
+        )
+
+        # the other user is blocked by get_queryset, and the booking survives
         self.client.force_authenticate(user=self.user)
         response = self.client.delete(f"/api/booking/{booking.id}/")
         self.assertEqual(response.status_code, 404)     # not in their queryset

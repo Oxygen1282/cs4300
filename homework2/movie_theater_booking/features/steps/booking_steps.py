@@ -1,6 +1,7 @@
 from behave import given, when, then 
 from datetime import date 
-from bookings.models import Movie, Seat
+from bookings.models import Movie, Seat, Booking
+from django.contrib.auth.models import User
 
 # Step definitions for features/movie_booking.feature.
 # Run with: python manage.py behave  (behave-django uses a fresh test database)
